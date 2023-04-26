@@ -8,6 +8,7 @@
     "dev": "node src/server.js"
   },
   "dependencies": {
-    "venom-bot": "^4.2.0"
+    "i": "^0.3.7",
+    "venom-bot": "^4.3.7"
   }
 }
