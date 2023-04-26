@@ -1,34 +1,56 @@
-import { menu } from '../menu.js';
-import { storage } from '../storage.js';
+import { VenomBot } from '../venom.js'
+import { menu } from '../menu.js'
+import { storage } from '../storage.js'
+import { STAGES } from './index.js'
 
 export const stageTwo = {
-  exec({ from, message }) {
-    const order =
-      '\n-----------------------------------\n#️⃣ - ```FINALIZAR pedido``` \n*️⃣ - ```CANCELAR pedido```';
-    if (message === '*') {
-      storage[from].stage = 0;
-      storage[from].itens = [];
+  async exec(params) {
+    const message = params.message.trim()
+    const isMsgValid = /[1|2|3|4|5|#|*]/.test(message)
 
-      return '🔴 Pedido *CANCELADO* com sucesso. \n\n ```Volte Sempre!```';
-    } else if (message === '#') {
-      storage[from].stage = 3;
+    let msg =
+      '❌ *Digite uma opção válida, por favor.* \n⚠️ ```APENAS UMA OPÇÃO POR VEZ``` ⚠️'
 
-      return (
-        '🗺️ Agora, informe o *ENDEREÇO*. \n ( ```Rua, Número, Bairro``` ) \n\n ' +
-        '\n-----------------------------------\n*️⃣ - ```CANCELAR pedido```'
-      );
-    } else {
-      if (!menu[message]) {
-        return `❌ *Código inválido, digite novamente!* \n\n ${order}`;
+    if (isMsgValid) {
+      if (['#', '*'].includes(message)) {
+        const option = options[message]()
+        msg = option.message
+        storage[params.from].stage = option.nextStage
+      } else {
+        msg =
+          `✅ *${menu[message].description}* adicionado com sucesso! \n\n` +
+          '```Digite outra opção```: \n\n' +
+          '\n-----------------------------------\n#️⃣ - ```FINALIZAR pedido``` \n*️⃣ - ```CANCELAR pedido```'
+        storage[params.from].itens.push(menu[message])
+      }
+
+      if (storage[params.from].stage === STAGES.INICIAL) {
+        storage[params.from].itens = []
       }
     }
 
-    storage[from].itens.push(menu[message]);
-
-    return (
-      `✅ *${menu[message].description}* adicionado com sucesso! \n\n` +
-      '```Digite outra opção```: \n\n' +
-      order
-    );
+    await VenomBot.getInstance().sendText({ to: params.from, message: msg })
   },
-};
+}
+
+const options = {
+  '*': () => {
+    const message =
+      '🔴 Pedido *CANCELADO* com sucesso. \n\n ```Volte Sempre!```'
+
+    return {
+      message,
+      nextStage: STAGES.INICIAL,
+    }
+  },
+  '#': () => {
+    const message =
+      '🗺️ Agora, informe o *ENDEREÇO*. \n ( ```Rua, Número, Bairro``` ) \n\n ' +
+      '\n-----------------------------------\n*️⃣ - ```CANCELAR pedido```'
+
+    return {
+      message,
+      nextStage: STAGES.RESUMO,
+    }
+  },
+}
